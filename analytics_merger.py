@@ -5,7 +5,7 @@ from collections import defaultdict
 
 def merge_partial_indexes(partial_files, output_file):
 
-    merged_index = defaultdict(dict)
+    merged_index = defaultdict(list)
 
     for file_name in partial_files:
 
@@ -14,7 +14,7 @@ def merge_partial_indexes(partial_files, output_file):
 
         for token, postings in partial_index.items():
 
-            merged_index[token].update(postings)
+            merged_index[token].extend(postings)
 
     with open(output_file, "w") as f:
         json.dump(merged_index, f)
