@@ -7,7 +7,7 @@ def get_raw_text(html_content: str):
     soup = BeautifulSoup(html_content)
     for tag in soup.descendants:
         if tag.string:
-            raw_text.append(tag.string)
+            raw_text.append(tag.string.strip())
     return " ".join(raw_text)
 
 def extract_important_words(html_content: str):
