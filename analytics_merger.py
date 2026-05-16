@@ -19,6 +19,9 @@ def merge_partial_indexes(partial_files, output_file):
     with open(output_file, "w") as f:
         json.dump(merged_index, f)
 
+    for file_name in partial_files:
+        os.remove(file_name)
+
     print(f"Merged index written to {output_file}")
 
 
