@@ -1,0 +1,2 @@
+ntlk>=3.9.4 # For Porter stemming
+beautifulsoup4>=4.14.3
