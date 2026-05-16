@@ -23,7 +23,7 @@ def tokenize(text: str) -> list[str]:
     """Tokenize the text. The search engine specification defines a token as an alphanumeric sequence."""
     tokens = []
     next_token = ""
-    for char in str:
+    for char in text:
         if char.isalnum():
             next_token += char
         else:
