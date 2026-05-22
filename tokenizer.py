@@ -4,6 +4,23 @@ from bs4 import BeautifulSoup, XMLParsedAsHTMLWarning
 
 
 _stemmer = PorterStemmer()
+def tokenize_query(query: str) -> list[str]:
+    query = query.lower()
+    tokens = []
+    next_token = ""
+
+    for char in query:
+        if char.isalnum():
+            next_token += char
+        else:
+            if next_token:
+                tokens.append(next_token)
+                next_token = ""
+
+    if next_token:
+        tokens.append(next_token)
+
+    return stem_tokens(tokens)
 
 def tokenize(html_content: str) -> list[str]:
     soup = BeautifulSoup(html_content, "lxml")
@@ -17,6 +34,10 @@ def tokenize(html_content: str) -> list[str]:
             if next_token:
                 tokens.append(next_token)
                 next_token = ""
+
+    if next_token:
+        tokens.append(next_token)
+
     return tokens
 
 def get_important_tokens(html_content: str) -> list[str]:
@@ -30,4 +51,7 @@ def get_important_tokens(html_content: str) -> list[str]:
     return re.findall(r'[a-zA-Z0-9]+', " ".join(important_text))
 
 def stem_tokens(tokens: list[str]) -> list[str]:
-    return [_stemmer.stem(token) for token in tokens]
+    return [_stemmer.stem(token.lower()) for token in tokens]
+
+# if __name__ == "__main__":
+#     print(tokenize_query("Christina Lopes"))
