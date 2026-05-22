@@ -49,3 +49,34 @@ def generate_report(index_file, document_count):
     print(f"Documents Indexed: {document_count}")
     print(f"Unique Tokens: {unique_tokens}")
     print(f"Index Size on Disk: {index_size} KB")
+
+# ==========================
+# M2 SEARCH FUNCTIONS
+# ==========================
+
+def load_doc_id_map(file_path="doc_id_map.json"):
+
+    with open(file_path, "r") as f:
+        return json.load(f)
+
+
+def convert_docids_to_urls(doc_ids, doc_map):
+
+    urls = []
+
+    for doc_id in doc_ids:
+
+        doc_id = str(doc_id)
+
+        if doc_id in doc_map:
+            urls.append(doc_map[doc_id])
+
+    return urls[:5]
+
+
+def print_search_results(urls):
+
+    print("\n===== TOP RESULTS =====\n")
+
+    for i, url in enumerate(urls, start=1):
+        print(f"{i}. {url}")
