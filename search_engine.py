@@ -1,4 +1,4 @@
-from tokenizer import stem_tokens
+from tokenizer import tokenize_query
 
 def get_postings(index: dict, token: str) -> list[int]:
     """Return sorted list of doc IDs for a token, or empty list if not found."""
@@ -28,7 +28,7 @@ def intersect(doc_list_1: list[int], doc_list_2: list[int]) -> list[int]:
 
 def boolean_query(index: dict, query: str) -> list[int]:
     """Return top 5 doc IDs matching all query terms (AND logic)."""
-    query_tokens = stem_tokens(query.lower().split())
+    query_tokens = tokenize_query(query)
     if not query_tokens:
         return []
 
