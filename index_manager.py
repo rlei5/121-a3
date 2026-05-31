@@ -36,8 +36,13 @@ def update_inverted_index(doc_id: int, tokens: list[str], important_tokens: list
 def offload_to_disk(file_name) -> None:
     global INVERTED_INDEX
 
+    serializable = {
+        token: {"doc_freq": len(postings), "postings": [list(p) for p in postings]}
+        for token, postings in INVERTED_INDEX.items()
+    }
+
     with open(file_name, 'w') as file:
-        json.dump(INVERTED_INDEX, file)
+        json.dump(serializable, file)
 
     INVERTED_INDEX.clear()
 

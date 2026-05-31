@@ -2,7 +2,7 @@ import os
 import json
 from tokenizer import tokenize, get_important_tokens, stem_tokens
 from index_manager import update_inverted_index, offload_to_disk
-from analytics_merger import merge_partial_indexes, generate_report
+from analytics_merger import merge_partial_indexes, generate_report, generate_seek_table
 
 CORPUS_PATH = os.path.join(os.path.dirname(__file__), "DEV")
 OFFLOAD_THRESHOLD = 15000
@@ -56,6 +56,10 @@ def main():
         partial_files.append(partial_file)
 
     merge_partial_indexes(partial_files, FINAL_INDEX)
+    generate_seek_table(FINAL_INDEX)
+
+    with open("metadata.json", "w") as f:
+        json.dump({"doc_count": doc_count}, f)
 
     with open("doc_id_map.json", "w") as f:
         json.dump(doc_id_map, f)

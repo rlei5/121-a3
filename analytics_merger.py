@@ -5,24 +5,44 @@ from collections import defaultdict
 
 def merge_partial_indexes(partial_files, output_file):
 
-    merged_index = defaultdict(list)
+    merged_postings = defaultdict(list)
 
     for file_name in partial_files:
 
         with open(file_name, "r") as f:
             partial_index = json.load(f)
 
-        for token, postings in partial_index.items():
-
-            merged_index[token].extend(postings)
+        for token, entry in partial_index.items():
+            merged_postings[token].extend(entry["postings"])
 
     with open(output_file, "w") as f:
-        json.dump(merged_index, f)
+        for token, postings in merged_postings.items():
+            entry = json.dumps({token: {"doc_freq": len(postings), "postings": postings}})
+            f.write(entry + "\n")
 
     for file_name in partial_files:
         os.remove(file_name)
 
     print(f"Merged index written to {output_file}")
+
+
+def generate_seek_table(index_file, output_file="seek_table.json"):
+
+    seek_table = {}
+
+    with open(index_file, "r") as f:
+        while True:
+            offset = f.tell()
+            line = f.readline()
+            if not line:
+                break
+            token = next(iter(json.loads(line)))
+            seek_table[token] = offset
+
+    with open(output_file, "w") as f:
+        json.dump(seek_table, f)
+
+    print(f"Seek table written to {output_file}")
 
 
 def count_unique_tokens(index):
@@ -38,10 +58,7 @@ def calculate_index_size(index_file):
 
 def generate_report(index_file, document_count):
 
-    with open(index_file, "r") as f:
-        index = json.load(f)
-
-    unique_tokens = count_unique_tokens(index)
+    unique_tokens = sum(1 for _ in open(index_file, "r"))
 
     index_size = calculate_index_size(index_file)
 
