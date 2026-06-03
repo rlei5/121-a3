@@ -58,8 +58,8 @@ def calculate_index_size(index_file):
 
 def generate_report(index_file, document_count):
 
-    unique_tokens = sum(1 for _ in open(index_file, "r"))
-
+    with open(index_file, "r") as f:
+        unique_tokens = sum(1 for _ in f)
     index_size = calculate_index_size(index_file)
 
     print("========== INDEX REPORT ==========")
