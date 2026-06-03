@@ -6,13 +6,17 @@ from tokenizer import tokenize_query
 
 class SearchEngine:
     """Class that allows you to search through the index of a search engine."""
-    def __init__(self, index_path, seek_table, metadata):
+    def __init__(self, index_path, seek_table, metadata, doc_id_map, simhash_map):
         self.index_path = index_path
         with open(seek_table, "r", encoding="utf-8") as f:
             self.seek_table = json.load(f)
         with open(metadata, "r", encoding="utf-8") as f:
             self.metadata = json.load(f)
             self.metadata['log_2_doc_dount'] = math.log2(self.metadata['doc_count'])
+        with open(doc_id_map, "r", encoding="utf-8") as f:
+            self.doc_id_map = json.load(f)
+        with open(simhash_map, "r", encoding="utf-8") as f:
+            self.simhash_map = json.load(f)
     
     @cache
     def get_doc_count(self):
@@ -104,6 +108,15 @@ class SearchEngine:
 
         return results[:5]
 
+    def is_junk_url(self, url: str) -> bool:
+        junk_extensions = ('.txt', '.bib', '.csv', '.log')
+        junk_substrings = ('/datasets/', '/raw-attachment/')
+        return url.endswith(junk_extensions) or any(s in url for s in junk_substrings)
+
+    def is_near_duplicate(self, doc_id: int, seen: list[int], threshold: int = 3) -> bool:
+        fingerprint = self.simhash_map.get(str(doc_id), -1)
+        return any(bin(fingerprint ^ h).count('1') <= threshold for h in seen)
+
     def scored_query(self, query: str) -> list[int]:
         """Return top 5 doc IDs ranked by TF-IDF, seeded from highest-IDF token."""
         query_tokens = tuple(sorted(tokenize_query(query)))
@@ -115,4 +128,19 @@ class SearchEngine:
         def similarity(doc_id):
             return np.sum(self.modified_doc_tf_idf(query_tokens, doc_id)) / len(query_tokens)
 
-        return sorted(candidates, key=similarity, reverse=True)[:5]
+        ranked = sorted(candidates, key=similarity, reverse=True)
+
+        # filter junk URLs and near-duplicate content from top candidates
+        results = []
+        seen_fingerprints = []
+        for doc_id in ranked:
+            url = self.doc_id_map.get(str(doc_id), "")
+            if self.is_junk_url(url):
+                continue
+            if self.is_near_duplicate(doc_id, seen_fingerprints):
+                continue
+            seen_fingerprints.append(self.simhash_map.get(str(doc_id), -1))
+            results.append(doc_id)
+            if len(results) == 5:
+                break
+        return results

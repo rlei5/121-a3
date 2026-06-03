@@ -1,6 +1,6 @@
 import os
 import json
-from tokenizer import tokenize, get_important_tokens, stem_tokens
+from tokenizer import tokenize, get_important_tokens, stem_tokens, get_simhash
 from index_manager import update_inverted_index, offload_to_disk
 from analytics_merger import merge_partial_indexes, generate_report, generate_seek_table
 
@@ -13,6 +13,7 @@ def main():
     partial_index_count = 0
     partial_files = []
     doc_id_map = {}  # doc_id -> url
+    simhash_map = {}  # doc_id -> simhash fingerprint
 
     for domain_folder in os.listdir(CORPUS_PATH):
         folder_path = os.path.join(CORPUS_PATH, domain_folder)
@@ -40,6 +41,7 @@ def main():
             all_tokens = stem_tokens(tokenize(html_content))
             important_tokens = stem_tokens(get_important_tokens(html_content))
 
+            simhash_map[doc_count] = get_simhash(all_tokens)
             update_inverted_index(doc_count, all_tokens, important_tokens)
 
             if doc_count % OFFLOAD_THRESHOLD == 0:
@@ -63,6 +65,9 @@ def main():
 
     with open("doc_id_map.json", "w") as f:
         json.dump(doc_id_map, f)
+
+    with open("simhash_map.json", "w") as f:
+        json.dump(simhash_map, f)
 
     generate_report(FINAL_INDEX, doc_count)
 

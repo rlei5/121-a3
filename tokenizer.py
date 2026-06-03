@@ -53,5 +53,27 @@ def get_important_tokens(html_content: str) -> list[str]:
 def stem_tokens(tokens: list[str]) -> list[str]:
     return [_stemmer.stem(token.lower()) for token in tokens]
 
+def get_simhash(tokens: list[str]) -> int:
+    from collections import Counter
+    def _hash_word(word):
+        h = 0
+        for char in word:
+            h = (h * 31 + ord(char)) % (2**64)
+        return h
+    weights = Counter(tokens)
+    v = [0] * 64
+    for word, weight in weights.items():
+        word_hash = _hash_word(word)
+        for i in range(64):
+            if (word_hash >> i) & 1:
+                v[i] += weight
+            else:
+                v[i] -= weight
+    fingerprint = 0
+    for i in range(64):
+        if v[i] > 0:
+            fingerprint |= (1 << i)
+    return fingerprint
+
 # if __name__ == "__main__":
 #     print(tokenize_query("Christina Lopes"))
