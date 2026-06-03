@@ -97,3 +97,7 @@ def print_search_results(urls):
 
     for i, url in enumerate(urls, start=1):
         print(f"{i}. {url}")
+
+def query_results_to_urls(doc_ids, doc_map_file="doc_id_map.json"):
+    doc_map = load_doc_id_map(doc_map_file)
+    return convert_docids_to_urls(doc_ids, doc_map)
