@@ -20,7 +20,8 @@ def tokenize_query(query: str) -> list[str]:
     if next_token:
         tokens.append(next_token)
 
-    return stem_tokens(tokens)
+    tokens = stem_tokens(tokens)
+    return add_bigrams(tokens)
 
 def tokenize(html_content: str) -> list[str]:
     soup = BeautifulSoup(html_content, "lxml")
@@ -39,6 +40,9 @@ def tokenize(html_content: str) -> list[str]:
         tokens.append(next_token)
 
     return tokens
+
+def add_bigrams(tokens: list[str]) -> list[str]:
+    return tokens + [f"{tokens[i]} {tokens[i + 1]}" for i in range(len(tokens) - 1)]
 
 def get_important_tokens(html_content: str) -> list[str]:
     soup = BeautifulSoup(html_content, "lxml")
@@ -75,5 +79,5 @@ def get_simhash(tokens: list[str]) -> int:
             fingerprint |= (1 << i)
     return fingerprint
 
-# if __name__ == "__main__":
-#     print(tokenize_query("Christina Lopes"))
+if __name__ == "__main__":
+    print(add_bigrams(['University', 'of', 'California', 'Irvine']))

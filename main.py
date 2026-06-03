@@ -1,6 +1,6 @@
 import os
 import json
-from tokenizer import tokenize, get_important_tokens, stem_tokens, get_simhash
+from tokenizer import tokenize, get_important_tokens, stem_tokens, add_bigrams, get_simhash
 from index_manager import update_inverted_index, offload_to_disk
 from analytics_merger import merge_partial_indexes, generate_report, generate_seek_table
 
@@ -38,7 +38,7 @@ def main():
             if doc_count % 1000 == 0:
                 print(f"Indexed {doc_count} documents...")
 
-            all_tokens = stem_tokens(tokenize(html_content))
+            all_tokens = add_bigrams(stem_tokens(tokenize(html_content)))
             important_tokens = stem_tokens(get_important_tokens(html_content))
 
             simhash_map[doc_count] = get_simhash(all_tokens)

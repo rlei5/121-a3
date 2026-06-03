@@ -23,6 +23,7 @@ class SearchEngine:
         """Returns the number of documents indexed."""
         return self.metadata['doc_count']
     
+    @lru_cache(maxsize=1024)
     def get_token_dict(self, token: str) -> dict[str]:
         """Returns the infomation about the token."""
         if token not in self.seek_table:
@@ -31,13 +32,16 @@ class SearchEngine:
             f.seek(self.seek_table[token])
             line = f.readline()
             token_dict = json.loads(line)
-        return token_dict[token]
+        entry = token_dict[token]
+        # convert postings list to a dict keyed by doc_id for O(1) lookup in get_tf
+        entry["postings"] = {p[0]: p for p in entry.get("postings", [])}
+        return entry
 
     @lru_cache(maxsize=1024)
     def get_doc_ids(self, token: str) -> list[int]:
         """Return sorted list of doc IDs for a token, or empty list if not found."""
         token_dict = self.get_token_dict(token)
-        return [posting[0] for posting in token_dict.get("postings", [])]
+        return list(token_dict.get("postings", {}).keys())
 
     def get_df(self, token: str) -> int:
         """Gets the document frequency of the specified token."""
@@ -59,20 +63,21 @@ class SearchEngine:
     def get_tf(self, token: str, doc_id: int, important=False):
         """Gets the term frequency of a token in doc_id in the index."""
         token_dict = self.get_token_dict(token)
-        postings = token_dict.get("postings", [])
-        for post in postings:
-            if post[0] == doc_id:
-                return post[2] if important else post[1]
-        return 0
+        post = token_dict.get("postings", {}).get(doc_id)
+        if post is None:
+            return 0
+        return post[2] if important else post[1]
 
     # Returns a document vector whose components are the scores based on a modified tf-idf system
     def modified_doc_tf_idf(self, tokens, doc_id):
         vector = []
         for token in tokens:
-            tf = self.get_tf(token, doc_id)
-            tf_important = self.get_tf(token, doc_id, important=True)
+            post = self.get_token_dict(token).get("postings", {}).get(doc_id)
+            if post is None:
+                vector.append(0)
+                continue
             idf = self.get_idf(token)
-            vector.append((tf + 10 * tf_important) * idf)
+            vector.append((post[1] + 10 * post[2]) * idf)
         return np.array(vector)
 
     def intersect(self, doc_list_1: list[int], doc_list_2: list[int]) -> list[int]:
@@ -115,7 +120,7 @@ class SearchEngine:
 
     def is_near_duplicate(self, doc_id: int, seen: list[int], threshold: int = 3) -> bool:
         fingerprint = self.simhash_map.get(str(doc_id), -1)
-        return any(bin(fingerprint ^ h).count('1') <= threshold for h in seen)
+        return any(bin(fingerprint ^ h).count('1') < threshold for h in seen)
 
     def scored_query(self, query: str) -> list[int]:
         """Return top 5 doc IDs ranked by TF-IDF, seeded from highest-IDF token."""
@@ -136,8 +141,10 @@ class SearchEngine:
         for doc_id in ranked:
             url = self.doc_id_map.get(str(doc_id), "")
             if self.is_junk_url(url):
+                print(f"JUNK: {url}")
                 continue
             if self.is_near_duplicate(doc_id, seen_fingerprints):
+                print(f"DUPE: {url}")
                 continue
             seen_fingerprints.append(self.simhash_map.get(str(doc_id), -1))
             results.append(doc_id)
